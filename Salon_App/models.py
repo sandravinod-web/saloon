@@ -13,16 +13,19 @@ class User(AbstractUser):
     )
     user_type = models.CharField(max_length=20, choices=USER_TYPES)
 
-    def save(self, *args, **kwargs):
-        # Enforce only one super admin in the system
-        if self.user_type == 'super_admin':
-            if User.objects.filter(user_type='super_admin').exists() and not self.pk:
-                raise ValidationError("Only one super admin is allowed in the system.")
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.username} ({self.get_user_type_display()})"
+    
+# Super Admin Model
+class SuperAdmin(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'super_admin'})
+    name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=15)
+    email = models.EmailField(max_length=100)
 
+    def __str__(self):
+        return f"{self.name}"
+        
 # Client Model representing Salons or Laundries
 class Client(models.Model):
     admin = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'user_type': 'admin'})
@@ -104,7 +107,16 @@ class Appointment(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
     date = models.DateField()
     time = models.TimeField()
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('cancelled', 'Cancelled'),
+        ('completed', 'Completed'),
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Appointment on {self.date} at {self.time} - {self.branch.name}"
+    
+
